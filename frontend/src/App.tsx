@@ -109,7 +109,7 @@ function App() {
       // Create a download link and trigger it
       const link = document.createElement('a');
       const filename = downloadUrls[cpu]; // Backend now returns just the filename
-      link.href = `http://localhost:8000/download/${filename}`;
+      link.href = `/download/${filename}`;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
@@ -121,7 +121,7 @@ function App() {
     if (zipFileUrl) {
       // Create a download link and trigger it
       const link = document.createElement('a');
-      link.href = `http://localhost:8000/download/${zipFileUrl}`;
+      link.href = `/download/${zipFileUrl}`;
       link.download = zipFileUrl;
       document.body.appendChild(link);
       link.click();
