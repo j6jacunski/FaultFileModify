@@ -1,0 +1,61 @@
+# Development Dockerfile with hot-reloading support
+
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    gcc \
+    g++ \
+    python3-dev \
+    musl-dev \
+    curl
+
+# Copy package files for frontend
+COPY frontend/package*.json ./frontend/
+
+# Install frontend dependencies
+WORKDIR /app/frontend
+RUN npm install
+
+# Copy frontend source code
+COPY frontend/ ./
+
+# Switch back to app directory
+WORKDIR /app
+
+# Copy Python requirements and install backend dependencies
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Copy backend source code
+COPY backend/ ./backend/
+
+# Create necessary directories
+RUN mkdir -p uploads outputs
+
+# Copy the main application file
+COPY backend/main.py ./main.py
+
+# Create a startup script for development
+RUN echo '#!/bin/sh\n\
+echo "Starting development environment..."\n\
+echo "Starting backend server..."\n\
+cd /app && python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload &\n\
+echo "Starting frontend development server..."\n\
+cd /app/frontend && npm start\n\
+wait\n\
+' > /app/start-dev.sh && chmod +x /app/start-dev.sh
+
+# Expose ports
+EXPOSE 8000 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/docs || exit 1
+
+# Run the development startup script
+CMD ["/app/start-dev.sh"] 
