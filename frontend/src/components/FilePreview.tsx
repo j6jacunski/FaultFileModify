@@ -49,11 +49,27 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   const [selectedSection, setSelectedSection] = useState('faults');
   const [searchTerm, setSearchTerm] = useState('');
 
-  if (!previewData || Object.keys(previewData).length === 0) {
+  // Get current data safely
+  const currentData = previewData?.[selectedCPU];
+  
+  // Get data for current section safely
+  const sectionData = currentData?.data?.[selectedSection as keyof typeof currentData.data] || [];
+
+  // Filter data based on search term - this must be before any conditional returns
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return sectionData;
+    
+    return sectionData.filter(row => 
+      Object.values(row).some(value => 
+        String(value).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [sectionData, searchTerm]);
+
+  // Early return after all hooks
+  if (!previewData || Object.keys(previewData).length === 0 || !currentData) {
     return null;
   }
-
-  const currentData = previewData[selectedCPU];
 
   const UsageStats = ({ stats, title }: { stats: any; title: string }) => (
     <Box sx={{ mb: 2 }}>
@@ -84,20 +100,6 @@ export const FilePreview: React.FC<FilePreviewProps> = ({
   ];
 
   const currentSection = sections.find(s => s.key === selectedSection);
-
-  // Get data for current section
-  const sectionData = currentData.data[selectedSection as keyof typeof currentData.data] || [];
-
-  // Filter data based on search term
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return sectionData;
-    
-    return sectionData.filter(row => 
-      Object.values(row).some(value => 
-        String(value).toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [sectionData, searchTerm]);
 
   return (
     <Paper elevation={3} sx={{ p: 3 }}>

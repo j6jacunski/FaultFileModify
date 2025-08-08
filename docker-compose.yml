@@ -1,5 +1,7 @@
 version: '3.8'
 
+# Note: Use 'docker compose' instead of 'docker-compose' in newer Docker versions
+
 services:
   excel-processor:
     build:
