@@ -18,18 +18,11 @@ app = FastAPI(title="Excel Processor")
 # Configure CORS to allow requests from frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:8000"],  # React development server and production
+    allow_origins=["http://localhost:3000", "http://localhost:49490", "*"],  # Allow all origins for now
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Mount static files for React frontend (in production)
-try:
-    app.mount("/", StaticFiles(directory="frontend/build", html=True), name="static")
-except Exception:
-    # In development, frontend/build might not exist
-    pass
 
 # Create necessary directories
 UPLOAD_DIR = Path("uploads")
@@ -46,6 +39,11 @@ if not HISTORY_FILE.exists():
 
 # Progress tracking
 processing_status = {}
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
@@ -197,6 +195,25 @@ async def get_history():
         history = json.load(f)
     return {"history": history[-10:]}  # Return last 10 entries
 
+# Mount static files for React frontend (in production) - mount AFTER all API routes
+try:
+    # Mount static assets first
+    if os.path.exists("frontend/build/static"):
+        app.mount("/static", StaticFiles(directory="frontend/build/static", html=False), name="static")
+    
+    # Mount the main frontend files
+    if os.path.exists("frontend/build"):
+        app.mount("/", StaticFiles(directory="frontend/build", html=True), name="frontend")
+        print("Static files mounted successfully")
+    else:
+        print("frontend/build directory not found - static files not mounted")
+except Exception as e:
+    # In development, frontend/build might not exist
+    print(f"Could not mount static files: {e}")
+    pass
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
